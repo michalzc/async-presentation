@@ -2,11 +2,9 @@ package michalz.fancyshop.mainservice.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.concurrent.Future;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.web.client.AsyncRestTemplate;
 
 /**
  * Created by michal on 09.05.15.
@@ -18,16 +16,17 @@ public class ApiService<T> {
     private String urlPattern;
 
     @Autowired
-    protected RestTemplate restTemplate;
+    private AsyncRestTemplate asyncRestTemplate;
 
     public ApiService(Class<T> entityClass, String urlPattern) {
         this.entityClass = entityClass;
         this.urlPattern = urlPattern;
     }
 
-    @Async
-    public Future<T> getItem(Object params) {
-        log.info("Getting {} for {}", entityClass.getName(), params);
-        return new AsyncResult<>(restTemplate.getForObject(urlPattern, entityClass, params));
+    public ListenableFuture<ResponseEntity<T>> getItem(Object param) {
+        log.info("Getting {} for {}", entityClass.getName(), param);
+        return asyncRestTemplate.getForEntity(urlPattern, entityClass, param);
     }
+
+
 }

@@ -8,8 +8,9 @@ import michalz.fancyshop.mainservice.services.ProductDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.HttpComponentsAsyncClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.AsyncRestTemplate;
 
 /**
  * Created by michal on 09.05.15.
@@ -44,8 +45,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public AsyncRestTemplate asyncRestTemplate() {
+        return new AsyncRestTemplate(new HttpComponentsAsyncClientHttpRequestFactory());
     }
 
     @Bean
