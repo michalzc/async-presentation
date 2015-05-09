@@ -8,12 +8,14 @@ import michalz.fancyshop.mainservice.services.ProductDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.client.RestTemplate;
 
 /**
  * Created by michal on 09.05.15.
  */
 @Configuration
+@EnableAsync
 public class ServiceConfiguration {
 
     @Value("${rest.external.infoUrl}")
