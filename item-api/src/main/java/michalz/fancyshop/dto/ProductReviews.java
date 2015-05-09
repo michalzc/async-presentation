@@ -9,10 +9,10 @@ import java.util.List;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class ProductSuggestions {
+public class ProductReviews {
     private Long productId;
-    private List<ProductInfo> suggestedProducts;
+    private List<ProductReview> productReviews;
 }
