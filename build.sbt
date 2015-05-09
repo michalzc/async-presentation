@@ -11,7 +11,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.projectlombok" % "lombok" % "1.16.4"
   )
-) ++ Revolver.settings
+)
 
 lazy val itemApi = (project in file("item-api"))
   .settings(commonSettings: _*)
@@ -27,6 +27,7 @@ lazy val externalServices = (project in file("external-services")).dependsOn(ite
       "org.springframework.boot" % "spring-boot-starter-web" % springBootVersion
     )
   )
+  .settings(Revolver.settings: _*)
 
 lazy val mainService = (project in file("main-service")).dependsOn(itemApi)
   .settings(commonSettings: _*)
@@ -36,3 +37,4 @@ lazy val mainService = (project in file("main-service")).dependsOn(itemApi)
       "org.springframework.boot" % "spring-boot-starter-web" % springBootVersion
     )
   )
+  .settings(Revolver.settings: _*)
