@@ -34,7 +34,8 @@ lazy val mainService = (project in file("main-service")).dependsOn(itemApi)
   .settings(
     name := "Main Service",
     libraryDependencies ++= Seq(
-      "org.springframework.boot" % "spring-boot-starter-web" % springBootVersion
+      "org.springframework.boot" % "spring-boot-starter-web" % springBootVersion,
+      "org.springframework.boot" % "spring-boot-starter-actuator" % springBootVersion
     )
   )
   .settings(Revolver.settings: _*)
