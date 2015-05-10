@@ -12,6 +12,7 @@ import michalz.fancyshop.dto.ProductReviews;
 import michalz.fancyshop.dto.ProductSuggestions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.context.request.async.DeferredResult;
 import scala.concurrent.Future;
 
@@ -24,6 +25,8 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class ProductDetailsService {
 
+    @Value("${rest.external.timeout}")
+    private Long externalTimeout;
 
     @Autowired
     ActorSystem actorSystem;
@@ -40,30 +43,35 @@ public class ProductDetailsService {
     @Qualifier("productReviewsApiService")
     private ApiService<ProductReviews> productReviewsApiService;
 
-    public void productDetails(Long productId, DeferredResult<ProductDetails> result) throws ExecutionException, InterruptedException {
+    public void productDetails(Long productId, DeferredResult<ProductDetails> result) throws ExecutionException,
+            InterruptedException {
         log.info("Getting product details for {}", productId);
 
         ProductDetails productDetails = new ProductDetails();
 
-        Future<ProductInfo> productInfoFuture = productInfoApiService.getItem(productId).recover(new Recover<ProductInfo>() {
+        Future<ProductInfo> productInfoFuture = productInfoApiService.getItem(productId, externalTimeout).recover(new Recover<ProductInfo>() {
             @Override
             public ProductInfo recover(Throwable failure) throws Throwable {
+                log.warn("Can't get product info", failure);
                 return new ProductInfo();
             }
         }, actorSystem.dispatcher());
 
-
-        Future<ProductReviews> productReviewsFuture = productReviewsApiService.getItem(productId).recover(new Recover<ProductReviews>() {
+        Future<ProductReviews> productReviewsFuture = productReviewsApiService.getItem(productId, externalTimeout)
+                .recover(new Recover<ProductReviews>() {
             @Override
             public ProductReviews recover(Throwable failure) throws Throwable {
+                log.warn("Can't get product reviews", failure);
                 return new ProductReviews();
             }
 
         }, actorSystem.dispatcher());
 
-        Future<ProductSuggestions> productSuggestionsFuture = productSuggestionsApiService.getItem(productId).recover(new Recover<ProductSuggestions>() {
+        Future<ProductSuggestions> productSuggestionsFuture = productSuggestionsApiService.getItem(productId,
+                externalTimeout).recover(new Recover<ProductSuggestions>() {
             @Override
             public ProductSuggestions recover(Throwable failure) throws Throwable {
+                log.warn("Can't get product suggestions", failure);
                 return new ProductSuggestions();
             }
         }, actorSystem.dispatcher());
@@ -77,11 +85,11 @@ public class ProductDetailsService {
 
                 if (failure == null) {
                     success.forEach(item -> {
-                        if(item instanceof ProductInfo) {
+                        if (item instanceof ProductInfo) {
                             productDetails.setProductInfo((ProductInfo) item);
-                        } else if(item instanceof ProductSuggestions) {
+                        } else if (item instanceof ProductSuggestions) {
                             productDetails.setProductSuggestions((ProductSuggestions) item);
-                        } else if(item instanceof ProductReviews) {
+                        } else if (item instanceof ProductReviews) {
                             productDetails.setProductReviews((ProductReviews) item);
                         }
                     });
