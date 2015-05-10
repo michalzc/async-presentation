@@ -4,6 +4,7 @@ import akka.actor.ActorSystem;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnComplete;
+import akka.dispatch.Recover;
 import lombok.extern.slf4j.Slf4j;
 import michalz.fancyshop.dto.ProductDetails;
 import michalz.fancyshop.dto.ProductInfo;
@@ -11,7 +12,6 @@ import michalz.fancyshop.dto.ProductReviews;
 import michalz.fancyshop.dto.ProductSuggestions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.async.DeferredResult;
 import scala.concurrent.Future;
 
@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
  */
 @Slf4j
 public class ProductDetailsService {
+
 
     @Autowired
     ActorSystem actorSystem;
@@ -44,59 +45,51 @@ public class ProductDetailsService {
 
         ProductDetails productDetails = new ProductDetails();
 
-        Future<ResponseEntity<ProductInfo>> infoFuture = productInfoApiService.getItem(productId);
-        Future<ResponseEntity<ProductReviews>> reviewsFuture = productReviewsApiService.getItem(productId);
-        Future<ResponseEntity<ProductSuggestions>> suggestionsFuture = productSuggestionsApiService.getItem(productId);
-
-        infoFuture.onComplete(new OnComplete<ResponseEntity<ProductInfo>>() {
+        Future<ProductInfo> productInfoFuture = productInfoApiService.getItem(productId).recover(new Recover<ProductInfo>() {
             @Override
-            public void onComplete(Throwable failure, ResponseEntity<ProductInfo> success) throws Throwable {
-                if (failure != null) {
-                    log.warn("Can't get product info", failure);
-                } else {
-                    log.info("Product info ");
-                    productDetails.setProductInfo(success.getBody());
-                }
-            }
-        }, actorSystem.dispatcher());
-
-        reviewsFuture.onComplete(new OnComplete<ResponseEntity<ProductReviews>>() {
-            @Override
-            public void onComplete(Throwable failure, ResponseEntity<ProductReviews> success) throws Throwable {
-                if (failure != null) {
-                    log.warn("Can't get reviews", failure);
-                } else {
-                    log.info("Reviews received");
-                    productDetails.setProductReviews(success.getBody());
-                }
-            }
-        }, actorSystem.dispatcher());
-
-        suggestionsFuture.onComplete(new OnComplete<ResponseEntity<ProductSuggestions>>() {
-            @Override
-            public void onComplete(Throwable failure, ResponseEntity<ProductSuggestions> success) throws Throwable {
-                if (failure != null) {
-                    log.warn("Can't get suggestions", failure);
-                } else {
-                    log.info("Suggestions received");
-                    productDetails.setProductSuggestions(success.getBody());
-                }
+            public ProductInfo recover(Throwable failure) throws Throwable {
+                return new ProductInfo();
             }
         }, actorSystem.dispatcher());
 
 
-        Future<Iterable<Object>> seqFuture = Futures.sequence(Arrays.asList((Future) infoFuture, (Future) reviewsFuture,
-                (Future) suggestionsFuture), actorSystem.dispatcher());
+        Future<ProductReviews> productReviewsFuture = productReviewsApiService.getItem(productId).recover(new Recover<ProductReviews>() {
+            @Override
+            public ProductReviews recover(Throwable failure) throws Throwable {
+                return new ProductReviews();
+            }
 
-        seqFuture.onComplete(new OnComplete<Iterable<Object>>() {
+        }, actorSystem.dispatcher());
+
+        Future<ProductSuggestions> productSuggestionsFuture = productSuggestionsApiService.getItem(productId).recover(new Recover<ProductSuggestions>() {
+            @Override
+            public ProductSuggestions recover(Throwable failure) throws Throwable {
+                return new ProductSuggestions();
+            }
+        }, actorSystem.dispatcher());
+
+        Future<Iterable<Object>> allItemsFuture = Futures.sequence(Arrays.asList((Future)productInfoFuture,
+                (Future)productReviewsFuture, (Future)productSuggestionsFuture), actorSystem.dispatcher());
+
+        allItemsFuture.onComplete(new OnComplete<Iterable<Object>>() {
             @Override
             public void onComplete(Throwable failure, Iterable<Object> success) throws Throwable {
-                if (failure != null) {
-                    log.warn("At last one future failed", failure);
+
+                if (failure == null) {
+                    success.forEach(item -> {
+                        if(item instanceof ProductInfo) {
+                            productDetails.setProductInfo((ProductInfo) item);
+                        } else if(item instanceof ProductSuggestions) {
+                            productDetails.setProductSuggestions((ProductSuggestions) item);
+                        } else if(item instanceof ProductReviews) {
+                            productDetails.setProductReviews((ProductReviews) item);
+                        }
+                    });
+                    result.setResult(productDetails);
                 } else {
-                    log.info("All futures complete");
+                    log.warn("Can't get response", failure);
+                    result.setErrorResult(failure);
                 }
-                result.setResult(productDetails);
             }
         }, actorSystem.dispatcher());
     }

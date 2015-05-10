@@ -27,22 +27,16 @@ public class ApiService<T> {
         this.urlPattern = urlPattern;
     }
 
-    public Future<ResponseEntity<T>> getItem(Object param) {
+    public Future<T> getItem(Object param) {
         log.info("Getting {} for {}", entityClass.getName(), param);
         ListenableFuture<ResponseEntity<T>> listenableFuture = asyncRestTemplate.getForEntity(urlPattern, entityClass, param);
         return toScalaFuture(listenableFuture);
     }
 
 
-    private <R> Future<R> toScalaFuture(ListenableFuture<R> listenableFuture) {
+    private <R> Future<R> toScalaFuture(ListenableFuture<ResponseEntity<R>> listenableFuture) {
         Promise<R> promise = Futures.promise();
-
-        listenableFuture.addCallback(result -> {
-            promise.trySuccess(result);
-        }, ex -> {
-            promise.tryFailure(ex);
-        });
-
+        listenableFuture.addCallback(result -> promise.trySuccess(result.getBody()), ex -> promise.tryFailure(ex));
         return promise.future();
     }
 
