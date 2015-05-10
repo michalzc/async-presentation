@@ -1,5 +1,4 @@
 
-lazy val akkaVersion = "2.3.10"
 lazy val springBootVersion = "1.2.3.RELEASE"
 
 
@@ -36,7 +35,8 @@ lazy val mainService = (project in file("main-service")).dependsOn(itemApi)
     libraryDependencies ++= Seq(
       "org.springframework.boot" % "spring-boot-starter-web" % springBootVersion,
       "org.springframework.boot" % "spring-boot-starter-actuator" % springBootVersion,
-      "org.apache.httpcomponents" % "httpasyncclient" % "4.1"
+      "org.apache.httpcomponents" % "httpasyncclient" % "4.1",
+      "com.typesafe.akka" % "akka-actor_2.11" % "2.3.10"
     )
   )
   .settings(Revolver.settings: _*)

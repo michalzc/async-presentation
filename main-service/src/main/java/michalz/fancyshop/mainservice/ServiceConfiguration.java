@@ -1,5 +1,6 @@
 package michalz.fancyshop.mainservice;
 
+import akka.actor.ActorSystem;
 import michalz.fancyshop.dto.ProductInfo;
 import michalz.fancyshop.dto.ProductReviews;
 import michalz.fancyshop.dto.ProductSuggestions;
@@ -50,10 +51,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ProductDetailsService productDetailsService() {
+    public ProductDetailsService productDetailsService() {
         return new ProductDetailsService();
     }
 
+    @Bean
+    public ActorSystem actorSystem() {
+        return ActorSystem.create("FancyShopSystem");
+    }
 
 
 }

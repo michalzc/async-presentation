@@ -12,8 +12,4 @@ public class ProductDetails {
     private ProductInfo productInfo;
     private ProductSuggestions productSuggestions;
     private ProductReviews productReviews;
-
-    public boolean isComplete() {
-        return productInfo != null && productSuggestions != null && productReviews != null;
-    }
 }

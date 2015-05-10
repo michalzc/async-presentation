@@ -1,10 +1,14 @@
 package michalz.fancyshop.mainservice.services;
 
+import akka.dispatch.Futures;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.client.AsyncRestTemplate;
+import scala.concurrent.Future;
+import scala.concurrent.Promise;
+
 
 /**
  * Created by michal on 09.05.15.
@@ -23,9 +27,23 @@ public class ApiService<T> {
         this.urlPattern = urlPattern;
     }
 
-    public ListenableFuture<ResponseEntity<T>> getItem(Object param) {
+    public Future<ResponseEntity<T>> getItem(Object param) {
         log.info("Getting {} for {}", entityClass.getName(), param);
-        return asyncRestTemplate.getForEntity(urlPattern, entityClass, param);
+        ListenableFuture<ResponseEntity<T>> listenableFuture = asyncRestTemplate.getForEntity(urlPattern, entityClass, param);
+        return toScalaFuture(listenableFuture);
+    }
+
+
+    private <R> Future<R> toScalaFuture(ListenableFuture<R> listenableFuture) {
+        Promise<R> promise = Futures.promise();
+
+        listenableFuture.addCallback(result -> {
+            promise.trySuccess(result);
+        }, ex -> {
+            promise.tryFailure(ex);
+        });
+
+        return promise.future();
     }
 
 
