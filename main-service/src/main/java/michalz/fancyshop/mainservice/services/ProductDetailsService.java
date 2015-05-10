@@ -59,13 +59,13 @@ public class ProductDetailsService {
 
         Future<ProductReviews> productReviewsFuture = productReviewsApiService.getItem(productId, externalTimeout)
                 .recover(new Recover<ProductReviews>() {
-            @Override
-            public ProductReviews recover(Throwable failure) throws Throwable {
-                log.warn("Can't get product reviews", failure);
-                return new ProductReviews();
-            }
+                    @Override
+                    public ProductReviews recover(Throwable failure) throws Throwable {
+                        log.warn("Can't get product reviews", failure);
+                        return new ProductReviews();
+                    }
 
-        }, actorSystem.dispatcher());
+                }, actorSystem.dispatcher());
 
         Future<ProductSuggestions> productSuggestionsFuture = productSuggestionsApiService.getItem(productId,
                 externalTimeout).recover(new Recover<ProductSuggestions>() {
@@ -76,27 +76,29 @@ public class ProductDetailsService {
             }
         }, actorSystem.dispatcher());
 
-        Future<Iterable<Object>> allItemsFuture = Futures.sequence(Arrays.asList((Future)productInfoFuture,
-                (Future)productReviewsFuture, (Future)productSuggestionsFuture), actorSystem.dispatcher());
-
-        allItemsFuture.onComplete(new OnComplete<Iterable<Object>>() {
+        productInfoFuture.flatMap(new Mapper<ProductInfo, Future<ProductReviews>>() {
             @Override
-            public void onComplete(Throwable failure, Iterable<Object> success) throws Throwable {
-
-                if (failure == null) {
-                    success.forEach(item -> {
-                        if (item instanceof ProductInfo) {
-                            productDetails.setProductInfo((ProductInfo) item);
-                        } else if (item instanceof ProductSuggestions) {
-                            productDetails.setProductSuggestions((ProductSuggestions) item);
-                        } else if (item instanceof ProductReviews) {
-                            productDetails.setProductReviews((ProductReviews) item);
-                        }
-                    });
-                    result.setResult(productDetails);
+            public Future<ProductReviews> apply(ProductInfo parameter) {
+                productDetails.setProductInfo(parameter);
+                log.info("Product info available");
+                return productReviewsFuture;
+            }
+        }, actorSystem.dispatcher()).flatMap(new Mapper<ProductReviews, Future<ProductSuggestions>>() {
+            @Override
+            public Future<ProductSuggestions> apply(ProductReviews parameter) {
+                productDetails.setProductReviews(parameter);
+                log.info("Product reviews available");
+                return productSuggestionsFuture;
+            }
+        }, actorSystem.dispatcher()).onComplete(new OnComplete<ProductSuggestions>() {
+            @Override
+            public void onComplete(Throwable failure, ProductSuggestions success) throws Throwable {
+                if(failure != null) {
+                    log.warn("Can't apply all futures", failure);
                 } else {
-                    log.warn("Can't get response", failure);
-                    result.setErrorResult(failure);
+                    log.info("All futures completed");
+                    productDetails.setProductSuggestions(success);
+                    result.setResult(productDetails);
                 }
             }
         }, actorSystem.dispatcher());
