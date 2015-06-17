@@ -83,16 +83,15 @@ public class ProductDetailsService {
                 }
             }
         }, actorSystem.dispatcher());
-        
 
-        Future<Iterable<Object>> seqFuture = Futures.sequence(
-                Arrays.asList(mapToObjectFuture(infoFuture), mapToObjectFuture(reviewsFuture),
-                        mapToObjectFuture(suggestionsFuture)), actorSystem.dispatcher());
+
+        Future<Iterable<Object>> seqFuture = Futures.sequence(Arrays.asList((Future) infoFuture, (Future) reviewsFuture,
+                (Future) suggestionsFuture), actorSystem.dispatcher());
 
         seqFuture.onComplete(new OnComplete<Iterable<Object>>() {
             @Override
             public void onComplete(Throwable failure, Iterable<Object> success) throws Throwable {
-                if(failure != null) {
+                if (failure != null) {
                     log.warn("At last one future failed", failure);
                 } else {
                     log.info("All futures complete");
@@ -101,14 +100,4 @@ public class ProductDetailsService {
             }
         }, actorSystem.dispatcher());
     }
-
-    private <T> Future<Object> mapToObjectFuture(Future<T> inputFuture) {
-        return inputFuture.map(new Mapper<T, Object>() {
-            public Object apply(T input) {
-                return input;
-            }
-        }, actorSystem.dispatcher());
-    }
-
-
 }
